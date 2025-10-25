@@ -199,6 +199,8 @@ final class StoriesViewModel: ObservableObject {
             if targetIndex >= 0 {
                 let previousStory = stories[targetIndex]
                 navigateToStory(at: targetIndex, startAtIndex: previousStory.items.count - 1)
+            } else {
+                shouldDismiss = true
             }
         }
     }

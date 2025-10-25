@@ -5,6 +5,7 @@
 //  Created by Arkadiusz Matecki on 25/10/2025.
 //
 
+import Combine
 import SwiftUI
 
 @MainActor
@@ -13,13 +14,17 @@ final class StoriesViewModel: ObservableObject {
     @Published private(set) var seen: Set<UUID>
     @Published private(set) var liked: Set<UUID>
     @Published var currentStoryIndices: [UUID: Int] = [:]
-    @Published var shouldNavigateToNext: Story? = nil
-    @Published var shouldDismiss: Bool = false
+    @Published var storyProgress: [UUID: Double] = [:]
+    @Published var shouldNavigateToNext: Story?
+    @Published var shouldDismiss = false
+    @Published var isPaused = false
 
     let navigationTitle = "Stories"
 
     private let persistence = StoriesPersistence()
     private let dataSource = StoryDataSource()
+    private var timer: Timer?
+    private var currentStoryId: UUID?
 
     init() {
         stories = dataSource.loadStories()
@@ -30,6 +35,69 @@ final class StoriesViewModel: ObservableObject {
     func markSeen(_ story: Story) {
         seen.insert(story.id)
         persistence.saveSeen(seen)
+    }
+
+    func isSeen(_ story: Story) -> Bool {
+        seen.contains(story.id)
+    }
+
+    func prepareForNewStory(_ story: Story) {
+        stopTimer()
+        currentStoryId = story.id
+
+        if currentStoryIndices[story.id] == nil {
+            currentStoryIndices[story.id] = 0
+        }
+
+        if storyProgress[story.id] == nil {
+            storyProgress[story.id] = 0.0
+        }
+
+        shouldNavigateToNext = nil
+        shouldDismiss = false
+
+        startTimer(for: story)
+    }
+
+    func pauseStory() {
+        isPaused = true
+        stopTimer()
+    }
+
+    func resumeStory(_ story: Story) {
+        isPaused = false
+        startTimer(for: story)
+    }
+
+    private func startTimer(for story: Story) {
+        guard let item = currentItem(in: story) else { return }
+
+        timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self = self, !self.isPaused else { return }
+
+                let currentProgress = self.storyProgress[story.id] ?? 0.0
+                let increment = 0.05 / item.duration
+                let newProgress = min(currentProgress + increment, 1.0)
+
+                self.storyProgress[story.id] = newProgress
+
+                if newProgress >= 1.0 {
+                    self.autoAdvanceToNext(in: story)
+                }
+            }
+        }
+    }
+
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func autoAdvanceToNext(in story: Story) {
+        stopTimer()
+        storyProgress[story.id] = 0.0
+        next(in: story)
     }
 
     func toggleLike(_ item: StoryItem) {
@@ -45,15 +113,6 @@ final class StoriesViewModel: ObservableObject {
         liked.contains(item.id)
     }
 
-    func isSeen(_ story: Story) -> Bool {
-        seen.contains(story.id)
-    }
-
-    func loadMore() {
-        let newStories = dataSource.loadStories()
-        stories.append(contentsOf: newStories)
-    }
-
     func photoURL(for item: StoryItem) -> URL? {
         URL(string: "https://picsum.photos/seed/\(item.seed)/800/1200")
     }
@@ -67,59 +126,111 @@ final class StoriesViewModel: ObservableObject {
         currentStoryIndices[story.id] ?? 0
     }
 
-    func next(in story: Story) {
-        let currentIdx = currentIndex(for: story)
-
-        if currentIdx < story.items.count - 1 {
-            currentStoryIndices[story.id] = currentIdx + 1
-        } else {
-            // Reached the end of current story, find next story
-            if let currentStoryIndex = stories.firstIndex(where: { $0.id == story.id }),
-               currentStoryIndex < stories.count - 1
-            {
-                let nextStory = stories[currentStoryIndex + 1]
-                currentStoryIndices[nextStory.id] = 0
-                shouldNavigateToNext = nextStory
-            } else {
-                // This is the last story, dismiss
-                shouldDismiss = true
-            }
-        }
-    }
-
-    func previous(in story: Story) {
-        let currentIdx = currentIndex(for: story)
-
-        if currentIdx > 0 {
-            currentStoryIndices[story.id] = currentIdx - 1
-        } else {
-            // At the beginning of current story, find previous story
-            if let currentStoryIndex = stories.firstIndex(where: { $0.id == story.id }),
-               currentStoryIndex > 0
-            {
-                let previousStory = stories[currentStoryIndex - 1]
-                currentStoryIndices[previousStory.id] = previousStory.items.count - 1
-                shouldNavigateToNext = previousStory
-            }
-        }
-    }
-
     func currentItem(in story: Story) -> StoryItem? {
-        let idx = currentIndex(for: story)
-        guard idx < story.items.count else { return nil }
-        return story.items[idx]
+        let index = currentIndex(for: story)
+        guard index < story.items.count else { return nil }
+        return story.items[index]
     }
 
     func progress(for index: Int, in story: Story) -> Double {
-        let currentIdx = currentIndex(for: story)
-        return index < currentIdx ? 1 : index == currentIdx ? 0.3 : 0
+        let currentIndex = currentIndex(for: story)
+
+        if index < currentIndex {
+            return 1.0
+        } else if index == currentIndex {
+            return storyProgress[story.id] ?? 0.0
+        } else {
+            return 0.0
+        }
     }
 
-    func prepareForNewStory(_ story: Story) {
-        if currentStoryIndices[story.id] == nil {
-            currentStoryIndices[story.id] = 0
+    func next(in story: Story) {
+        let currentIndex = currentIndex(for: story)
+
+        resetStoryProgress(for: story)
+        isPaused = false
+
+        if currentIndex < story.items.count - 1 {
+            moveToItem(at: currentIndex + 1, in: story)
+            return
         }
+        navigateToAdjacentStory(from: story, direction: .next)
+    }
+
+    func previous(in story: Story) {
+        let currentIndex = currentIndex(for: story)
+
+        resetStoryProgress(for: story)
+
+        isPaused = false
+
+        if currentIndex > 0 {
+            moveToItem(at: currentIndex - 1, in: story)
+            return
+        }
+
+        navigateToAdjacentStory(from: story, direction: .previous)
+    }
+
+    private enum NavigationDirection {
+        case next, previous
+    }
+
+    private func resetStoryProgress(for story: Story) {
+        stopTimer()
+        storyProgress[story.id] = 0.0
+    }
+
+    private func moveToItem(at index: Int, in story: Story) {
+        currentStoryIndices[story.id] = index
+        startTimer(for: story)
+    }
+
+    private func navigateToAdjacentStory(from story: Story, direction: NavigationDirection) {
+        guard let currentStoryIndex = stories.firstIndex(where: { $0.id == story.id }) else {
+            return
+        }
+
+        let targetIndex = direction == .next ? currentStoryIndex + 1 : currentStoryIndex - 1
+
+        switch direction {
+        case .next:
+            if targetIndex < stories.count {
+                navigateToStory(at: targetIndex, startAtIndex: 0)
+            } else {
+                shouldDismiss = true
+            }
+        case .previous:
+            if targetIndex >= 0 {
+                let previousStory = stories[targetIndex]
+                navigateToStory(at: targetIndex, startAtIndex: previousStory.items.count - 1)
+            }
+        }
+    }
+
+    private func navigateToStory(at index: Int, startAtIndex itemIndex: Int) {
+        let targetStory = stories[index]
+        currentStoryIndices[targetStory.id] = itemIndex
+        storyProgress[targetStory.id] = 0.0
+        shouldNavigateToNext = targetStory
+    }
+
+    func handleSwipeDown() {
+        shouldDismiss = true
+    }
+
+    func cleanupAfterNavigation() {
         shouldNavigateToNext = nil
+    }
+
+    func cleanupAfterDismiss() {
+        stopTimer()
         shouldDismiss = false
+    }
+
+    deinit {
+        MainActor.assumeIsolated {
+            stopTimer()
+        }
     }
 }

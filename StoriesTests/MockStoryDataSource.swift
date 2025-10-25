@@ -6,7 +6,7 @@
 //
 
 
-import Stories
+@testable import Stories
 
 // Conforms to the protocol defined above
 final class MockStoryDataSource: StoryDataSourceProtocol {

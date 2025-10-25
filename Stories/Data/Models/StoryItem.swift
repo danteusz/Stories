@@ -8,7 +8,7 @@
 import Foundation
 
 struct StoryItem: Identifiable, Codable, Hashable {
-    let id: UUID
+    let id: String
     let title: String
     let seed: String
     let duration: Double

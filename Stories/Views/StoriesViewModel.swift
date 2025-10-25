@@ -11,22 +11,25 @@ import SwiftUI
 @MainActor
 final class StoriesViewModel: ObservableObject {
     @Published private(set) var stories: [Story] = []
-    @Published private(set) var seen: Set<UUID>
-    @Published private(set) var liked: Set<UUID>
-    @Published var currentStoryIndices: [UUID: Int] = [:]
-    @Published var storyProgress: [UUID: Double] = [:]
+    @Published private(set) var seen: Set<String>
+    @Published private(set) var liked: Set<String>
+    @Published var currentStoryIndices: [String: Int] = [:]
+    @Published var storyProgress: [String: Double] = [:]
     @Published var shouldNavigateToNext: Story?
     @Published var shouldDismiss = false
     @Published var isPaused = false
 
     let navigationTitle = "Stories"
 
-    private let persistence = StoriesPersistence()
-    private let dataSource = StoryDataSource()
+    private let persistence: StoriesPersistenceProtocol
+    private let dataSource: StoryDataSourceProtocol
     private var timer: Timer?
-    private var currentStoryId: UUID?
+    private var currentStoryId: String?
 
-    init() {
+    init(dataSource: StoryDataSourceProtocol = StoryDataSource(),
+         persistence: StoriesPersistenceProtocol = StoriesPersistence()) {
+        self.dataSource = dataSource
+        self.persistence = persistence
         stories = dataSource.loadStories()
         seen = persistence.loadSeen()
         liked = persistence.loadLiked()
@@ -104,7 +107,9 @@ final class StoriesViewModel: ObservableObject {
     }
 
     func photoURL(for item: StoryItem) -> URL? {
-        URL(string: "https://picsum.photos/seed/\(item.seed)/800/1200")
+        let width = Int(UIScreen.main.bounds.size.width * UIScreen.main.scale)
+        let height = Int(UIScreen.main.bounds.size.height * UIScreen.main.scale)
+        return URL(string: "https://picsum.photos/seed/\(item.seed)/\(width)/\(height)")
     }
 
     func avatarUrl(for story: Story) -> URL? {

@@ -29,6 +29,16 @@
 		94558DA52EAD122A00B40CEB /* StoriesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StoriesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		94CFB0F12EAD44DC0036DD12 /* Exceptions for "StoriesTests" folder in "StoriesTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Stories.xctestplan,
+			);
+			target = 94558D9A2EAD122A00B40CEB /* StoriesTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		94558D902EAD122800B40CEB /* Stories */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -37,6 +47,9 @@
 		};
 		94558D9E2EAD122A00B40CEB /* StoriesTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				94CFB0F12EAD44DC0036DD12 /* Exceptions for "StoriesTests" folder in "StoriesTests" target */,
+			);
 			path = StoriesTests;
 			sourceTree = "<group>";
 		};

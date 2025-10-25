@@ -23,6 +23,7 @@ struct StoriesListView: View {
                     .environmentObject(viewModel)
                 }
         }
+        .navigationTransition(.automatic)
     }
 
     private var storiesScrollView: some View {

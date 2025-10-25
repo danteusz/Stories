@@ -1,0 +1,29 @@
+[
+    {
+        "id": "user-1",
+        "author": "Anna",
+        "items": [
+            { "id": "anna-1", "title": "Morning Walk", "seed": "anna-1", "duration": 5 },
+            { "id": "anna-2", "title": "Lunch Time", "seed": "anna-2", "duration": 6 },
+            { "id": "anna-3", "title": "Late Walk", "seed": "anna-3", "duration": 5 }
+        ]
+    },
+    {
+        "id": "user-2",
+        "author": "Ben",
+        "items": [
+            { "id": "ben-1", "title": "At the Beach", "seed": "ben-1", "duration": 7 },
+            { "id": "ben-2", "title": "Sunset Ride", "seed": "ben-2", "duration": 8 },
+            { "id": "ben-3", "title": "Night Beach", "seed": "ben-3", "duration": 7 }
+        ]
+    },
+    {
+        "id": "user-3",
+        "author": "Cathy",
+        "items": [
+            { "id": "cathy-1", "title": "City Views", "seed": "cathy-1", "duration": 5 },
+            { "id": "cathy-2", "title": "Coffee Break", "seed": "cathy-2", "duration": 6 },
+            { "id": "cathy-3", "title": "Night Views", "seed": "cathy-3", "duration": 5 }
+        ]
+    }
+]

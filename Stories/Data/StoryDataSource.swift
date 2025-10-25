@@ -7,12 +7,17 @@
 
 import Foundation
 
-final class StoryDataSource {
+protocol StoryDataSourceProtocol {
+    func loadStories() -> [Story]
+}
+
+
+final class StoryDataSource: StoryDataSourceProtocol {
     func loadStories() -> [Story] {
         if let stories = loadFromBundle() {
             return stories
         } else {
-            return generateMockStories()
+            return []
         }
     }
 
@@ -22,11 +27,4 @@ final class StoryDataSource {
         return try? JSONDecoder().decode([Story].self, from: data)
     }
 
-    private func generateMockStories() -> [Story] {
-        (0 ..< 5).map { i in
-            Story(id: UUID(), author: "User_\(i)", items: (0 ..< 3).map { j in
-                StoryItem(id: UUID(), title: "Story \(i)-\(j)", seed: "seed_\(i)_\(j)", duration: 5)
-            })
-        }
-    }
 }

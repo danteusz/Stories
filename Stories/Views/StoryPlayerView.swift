@@ -20,12 +20,12 @@ struct StoryPlayerView: View {
 
             VStack {
                 progressBars
+                    .safeAreaPadding(.top)
                 Spacer()
                 likeButton
             }
             .padding()
         }
-
         .background(Style.Colors.background.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .onAppear {
@@ -63,8 +63,7 @@ struct StoryPlayerView: View {
     @ViewBuilder
     private var storyImageView: some View {
         if let item = viewModel.currentItem(in: story),
-           let url = viewModel.photoURL(for: item)
-        {
+           let url = viewModel.photoURL(for: item) {
             AsyncImage(url: url) { image in
                 image
                     .resizable()

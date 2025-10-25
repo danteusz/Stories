@@ -32,9 +32,6 @@ struct StoryPlayerView: View {
             viewModel.prepareForNewStory(story)
             viewModel.markSeen(story)
         }
-        .onDisappear {
-            viewModel.pauseStory()
-        }
         .onReceive(viewModel.$shouldNavigateToNext) { nextStory in
             guard let nextStory = nextStory else { return }
             navigationPath.append(nextStory)
@@ -61,15 +58,6 @@ struct StoryPlayerView: View {
                 viewModel.next(in: story)
             }
         }
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.2)
-                .onChanged { _ in
-                    viewModel.pauseStory()
-                }
-                .onEnded { _ in
-                    viewModel.resumeStory(story)
-                }
-        )
     }
 
     @ViewBuilder

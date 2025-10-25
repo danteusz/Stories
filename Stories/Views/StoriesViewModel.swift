@@ -59,16 +59,6 @@ final class StoriesViewModel: ObservableObject {
         startTimer(for: story)
     }
 
-    func pauseStory() {
-        isPaused = true
-        stopTimer()
-    }
-
-    func resumeStory(_ story: Story) {
-        isPaused = false
-        startTimer(for: story)
-    }
-
     private func startTimer(for story: Story) {
         guard let item = currentItem(in: story) else { return }
 
@@ -224,8 +214,11 @@ final class StoriesViewModel: ObservableObject {
     }
 
     func cleanupAfterDismiss() {
+        currentStoryIndices = [:]
+        storyProgress = [:]
         stopTimer()
         shouldDismiss = false
+        isPaused = false
     }
 
     deinit {

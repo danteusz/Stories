@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 struct Story: Identifiable, Codable, Hashable {
     let id: UUID
     let author: String

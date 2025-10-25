@@ -11,6 +11,7 @@ struct StoryPlayerView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var viewModel: StoriesViewModel
     let story: Story
+    @Binding var navigationPath: NavigationPath
     @State private var isPaused = false
 
     var body: some View {
@@ -18,7 +19,8 @@ struct StoryPlayerView: View {
             if let item = viewModel.currentItem(in: story),
                let url = viewModel.photoURL(for: item)
             {
-                AsyncImage(url: url) { image in
+                AsyncImage(url: url) {
+                    image in
                     image.resizable().scaledToFill()
                 } placeholder: {
                     ProgressView()
@@ -29,8 +31,9 @@ struct StoryPlayerView: View {
 
             VStack {
                 HStack(spacing: 4) {
-                    ForEach(0 ..< story.items.count, id: \.self) { idx in
-                        ProgressView(value: viewModel.progress(for: idx))
+                    ForEach(0 ..< story.items.count, id: \.self) {
+                        index in
+                        ProgressView(value: viewModel.progress(for: index, in: story))
                             .progressViewStyle(.linear)
                             .tint(Style.Colors.text)
                     }
@@ -50,12 +53,27 @@ struct StoryPlayerView: View {
             }
         }
         .background(Style.Colors.background.ignoresSafeArea())
-        .onAppear { viewModel.markSeen(story) }
+        .onAppear {
+            viewModel.prepareForNewStory(story)
+            viewModel.markSeen(story)
+        }
+        .onReceive(viewModel.$shouldNavigateToNext) { nextStory in
+            if let nextStory = nextStory {
+                navigationPath.append(nextStory)
+                viewModel.shouldNavigateToNext = nil
+            }
+        }
+        .onReceive(viewModel.$shouldDismiss) { shouldDismiss in
+            if shouldDismiss {
+                navigationPath = NavigationPath()
+                viewModel.shouldDismiss = false
+            }
+        }
         .navigationBarBackButtonHidden(true)
         .gesture(DragGesture(minimumDistance: 20)
             .onEnded { value in
                 if value.translation.height > 100 {
-                    dismiss()
+                    viewModel.shouldDismiss = true
                 }
             })
         .onTapGesture { location in

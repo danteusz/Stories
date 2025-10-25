@@ -1,50 +1,48 @@
-    //
-    //  StoriesListView.swift
-    //  Stories
-    //
-    //  Created by Arkadiusz Matecki on 25/10/2025.
-    //
+//
+//  StoriesListView.swift
+//  Stories
+//
+//  Created by Arkadiusz Matecki on 25/10/2025.
+//
 
 import SwiftUI
 
 struct StoriesListView: View {
     @StateObject private var viewModel = StoriesViewModel()
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             ScrollView(
                 .horizontal,
-                showsIndicators: false) {
+                showsIndicators: false
+            ) {
                 LazyHStack(spacing: Style.Sizes.padding) {
                     ForEach(viewModel.stories) {
                         story in
-                        NavigationLink(
-                            destination: StoryPlayerView(story: story)
-                                .environmentObject(viewModel)) {
+                        Button {
+                            navigationPath.append(story)
+                        } label: {
                             StoryAvatarView(
                                 story: story,
                                 isSeen: viewModel.isSeen(story),
                                 avatarUrl: viewModel.avatarUrl(for: story)
                             )
-                            .onAppear {
-                                if story == viewModel.stories.last {
-                                    viewModel.loadMore()
-                                }
-                            }
                         }
                     }
                 }
                 .padding()
             }
             .navigationTitle(viewModel.navigationTitle)
+            .navigationDestination(for: Story.self) { story in
+                StoryPlayerView(story: story, navigationPath: $navigationPath)
+                    .environmentObject(viewModel)
+            }
         }
     }
 }
 
-
 // MARK: - Helpers
-
-
 
 // MARK: - Preview
 

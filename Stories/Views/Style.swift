@@ -25,7 +25,7 @@ enum Style {
     }
 
     enum Fonts {
-        static let author = Font.caption
+        static let author = Font.headline
         static let initial = Font.title
         static let heart = Font.largeTitle
     }
@@ -34,7 +34,6 @@ enum Style {
         static let storyCircle: CGFloat = 100
         static let storyBorder: CGFloat = 5
         static let avatarSize = storyCircle - storyBorder - 10
-        static let unreadDot: CGFloat = 12
         static let padding: CGFloat = 16
     }
 }

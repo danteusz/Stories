@@ -12,7 +12,9 @@ final class StoriesViewModel: ObservableObject {
     @Published private(set) var stories: [Story] = []
     @Published private(set) var seen: Set<UUID>
     @Published private(set) var liked: Set<UUID>
-    @Published var currentIndex: Int = 0
+    @Published var currentStoryIndices: [UUID: Int] = [:]
+    @Published var shouldNavigateToNext: Story? = nil
+    @Published var shouldDismiss: Bool = false
 
     let navigationTitle = "Stories"
 
@@ -61,24 +63,63 @@ final class StoriesViewModel: ObservableObject {
         return URL(string: "https://picsum.photos/seed/\(story.id)/\(size)")
     }
 
+    func currentIndex(for story: Story) -> Int {
+        currentStoryIndices[story.id] ?? 0
+    }
+
     func next(in story: Story) {
-        if currentIndex < story.items.count - 1 {
-            currentIndex += 1
+        let currentIdx = currentIndex(for: story)
+
+        if currentIdx < story.items.count - 1 {
+            currentStoryIndices[story.id] = currentIdx + 1
+        } else {
+            // Reached the end of current story, find next story
+            if let currentStoryIndex = stories.firstIndex(where: { $0.id == story.id }),
+               currentStoryIndex < stories.count - 1
+            {
+                let nextStory = stories[currentStoryIndex + 1]
+                currentStoryIndices[nextStory.id] = 0
+                shouldNavigateToNext = nextStory
+            } else {
+                // This is the last story, dismiss
+                shouldDismiss = true
+            }
         }
     }
 
-    func previous(in _: Story) {
-        if currentIndex > 0 {
-            currentIndex -= 1
+    func previous(in story: Story) {
+        let currentIdx = currentIndex(for: story)
+
+        if currentIdx > 0 {
+            currentStoryIndices[story.id] = currentIdx - 1
+        } else {
+            // At the beginning of current story, find previous story
+            if let currentStoryIndex = stories.firstIndex(where: { $0.id == story.id }),
+               currentStoryIndex > 0
+            {
+                let previousStory = stories[currentStoryIndex - 1]
+                currentStoryIndices[previousStory.id] = previousStory.items.count - 1
+                shouldNavigateToNext = previousStory
+            }
         }
     }
 
     func currentItem(in story: Story) -> StoryItem? {
-        guard currentIndex < story.items.count else { return nil }
-        return story.items[currentIndex]
+        let idx = currentIndex(for: story)
+        guard idx < story.items.count else { return nil }
+        return story.items[idx]
     }
 
-    func progress(for index: Int) -> Double {
-        index < currentIndex ? 1 : index == currentIndex ? 0.3 : 0
+    func progress(for index: Int, in story: Story) -> Double {
+        let currentIdx = currentIndex(for: story)
+        return index < currentIdx ? 1 : index == currentIdx ? 0.3 : 0
+    }
+
+    func prepareForNewStory(_ story: Story) {
+        if currentStoryIndices[story.id] == nil {
+            currentStoryIndices[story.id] = 0
+        }
+        shouldNavigateToNext = nil
+        shouldDismiss = false
     }
 }
